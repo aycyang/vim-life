@@ -20,8 +20,13 @@ function UpdateHConv()
   sbuffer hconv
   " replace buffer contents with contents of register t
   normal ggdG"tpkdd
-  " TODO update hconv
-
+  " update buffer hconv
+  while line(".") < line("$") - 1
+    call ConvLine()
+    normal j
+  endwhile
+  call ConvLine()
+  normal gg
   " switch to buffer 1
   sbuffer 1
   " return to mark a
