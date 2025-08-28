@@ -11,6 +11,42 @@ vsplit vconv2
 sbuffer 1
 autocmd TextChanged <buffer> :call UpdateHConv()
 
+function UpdateMain()
+  sbuffer 1
+  let maxLine = line("$")
+  let maxCol = col("$")
+  let line = 1
+  while line < maxLine
+    let col = 1
+    while col < maxCol
+      " pick from vconv2 -> @b
+      sbuffer vconv2
+      call cursor(line, col)
+      normal! "byl
+      " pick from main buffer -> @a
+      sbuffer 1
+      call cursor(line, col)
+      normal! "ayl
+      " calculate result
+      if @a == 1 && @b < 2
+        let @c = 0
+      elseif @a == 1 && (@b == 2 || @b == 3)
+        let @c = 1
+      elseif @a == 1 && @b > 3
+        let @c = 0
+      elseif @a == 0 && @b == 3
+        let @c = 1
+      else
+        let @c = 0
+      endif
+      " store result in main buffer
+      normal! x"cP
+      let col += 1
+    endwhile
+    let line += 1
+  endwhile
+endfunction
+
 " assumes line and col are uniform within buffers
 function SubtractBuffer(buf1, buf2)
   execute "sbuffer " . a:buf2
@@ -123,6 +159,7 @@ function UpdateHConv()
   " next phases
   call UpdateVConv()
   call UpdateVConv2()
+  call UpdateMain()
   " switch to buffer 1
   sbuffer 1
   " return to mark a
