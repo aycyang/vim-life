@@ -1,7 +1,7 @@
 func LifePlay()
   set bufhidden=hide
-  autocmd QuitPre * bdelete! life_neighbor_count
-  autocmd QuitPre * bdelete! life_back_buffer
+  autocmd ExitPre * bdelete! life_neighbor_count
+  autocmd ExitPre * bdelete! life_back_buffer
   while 1
     call LifeInitializeNeighborCount()
     call LifeInitializeBackBuffer()
