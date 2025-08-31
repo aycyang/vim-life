@@ -1,6 +1,6 @@
 func LifePlay()
-  setlocal hidden
   call LifeInitializeBackBuffer()
+  autocmd QuitPre * bdelete! life_back_buffer
   call LifeUpdateBackBuffer()
 endfunc
 
@@ -16,6 +16,7 @@ func LifeInitializeBackBuffer()
   let w = winwidth("%") - &numberwidth
   let h = winheight("%")
   edit life_back_buffer
+  set bufhidden=hide
   normal! ggdG
   execute "normal! ".w."i0\<esc>yy".(h-1)."p"
   execute "buffer".n
