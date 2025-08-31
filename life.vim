@@ -1,7 +1,24 @@
 func LifePlay()
-  call LifeInitializeBackBuffer()
+  set bufhidden=hide
+  autocmd QuitPre * bdelete! life_neighbor_count
   autocmd QuitPre * bdelete! life_back_buffer
-  call LifeUpdateBackBuffer()
+  while 1
+    call LifeInitializeNeighborCount()
+    call LifeInitializeBackBuffer()
+    call LifeUpdateNeighborCount()
+    call LifeUpdateBackBuffer()
+    call LifeUpdateMainBuffer()
+    redraw
+  endwhile
+endfunc
+
+func LifeUpdateMainBuffer()
+  " Copy back buffer to main buffer.
+  let n = bufnr("%")
+  call LifeSwitchToBackBuffer()
+  normal! ggyG
+  execute "buffer" n
+  normal! gg"_dGpkdd
 endfunc
 
 func LifePause()
@@ -11,13 +28,32 @@ func LifeSwitchToBackBuffer()
   buffer life_back_buffer
 endfunc
 
+func LifeSwitchToNeighborCount()
+  buffer life_neighbor_count
+endfunc
+
 func LifeInitializeBackBuffer()
+  " Save previous buffer number.
   let n = bufnr("%")
   let w = winwidth("%") - &numberwidth
   let h = winheight("%")
   edit life_back_buffer
   set bufhidden=hide
   normal! ggdG
+  " Fill with spaces.
+  execute "normal! ".w."i \<esc>yy".(h-1)."p"
+  " Switch back to previous buffer.
+  execute "buffer".n
+endfunc
+
+func LifeInitializeNeighborCount()
+  let n = bufnr("%")
+  let w = winwidth("%") - &numberwidth
+  let h = winheight("%")
+  edit life_neighbor_count
+  set bufhidden=hide
+  normal! ggdG
+  " Fill with zeros.
   execute "normal! ".w."i0\<esc>yy".(h-1)."p"
   execute "buffer".n
 endfunc
@@ -27,14 +63,15 @@ endfunc
 func LifeCharAt(line, col)
   " Example: suppose the file has 3 lines in it.
   " Then line("$") == 3 and the lines are 1-indexed.
-  if a:line > line("$")
+  " Valid lines would be 1, 2, or 3.
+  if a:line > line("$") || a:line <= 0
     return ""
   endif
   " Navigate to the specified line.
   call cursor(a:line, 0)
   " Example: suppose the current line has 3 characters on it.
   " Then col("$") == 4 and the columns are 1-indexed.
-  " So valid columns would be 1, 2, or 3.
+  " Valid columns would be 1, 2, or 3.
   if a:col >= col("$") || a:col <= 0
     return ""
   endif
@@ -51,11 +88,11 @@ func LifeOneIndexedModulo(i, n)
 endfunc
 
 " Assumes we are currently on the main buffer.
-func LifeUpdateBackBuffer()
+func LifeUpdateNeighborCount()
   " Save the buffer number of the main buffer.
   let bufn = bufnr("%")
-  " Iterate over every character of the back buffer.
-  call LifeSwitchToBackBuffer()
+  " Iterate over every character of the neighbor count buffer.
+  call LifeSwitchToNeighborCount()
   let line = 1
   let numLines = line("$")
   while line <= numLines
@@ -76,7 +113,7 @@ func LifeUpdateBackBuffer()
           let neighborCount += 1
         endif
       endfor
-      call LifeSwitchToBackBuffer()
+      call LifeSwitchToNeighborCount()
       " Replace char under cursor with neighbor count.
       call cursor(line, col)
       let @" = neighborCount
@@ -88,14 +125,48 @@ func LifeUpdateBackBuffer()
   execute "buffer".bufn
 endfunc
 
-" Assumes we are currently on the back buffer.
-" Updates the neighbor count at (line, col) by looking at adjacent live cells
-" in buffer bufn.
-func LifeUpdateNeighborCount(bufn, line, col)
-  call cursor(a:line, a:col)
-  normal! yl
-  let char = LifeCharAt(a:bufn, a:line, a:col)
-  if char ==# "#"
-    normal! r1
-  endif
+" Assumes we are currently on the main buffer.
+func LifeUpdateBackBuffer()
+  " Save the buffer number of the main buffer.
+  let bufn = bufnr("%")
+  " Iterate over every character of the back buffer.
+  call LifeSwitchToBackBuffer()
+  let line = 1
+  let numLines = line("$")
+  while line <= numLines
+    call cursor(line, 1)
+    let col = 1
+    let numCols = col("$") - 1
+    while col <= numCols
+      " Switch to main buffer.
+      execute "buffer".bufn
+      let cell = LifeCharAt(line, col)
+      " Switch to neighbor count buffer.
+      call LifeSwitchToNeighborCount()
+      call cursor(line, col)
+      normal! yl
+      let neighborCount = @"
+      " Switch to back buffer.
+      call LifeSwitchToBackBuffer()
+      let isLive = 0
+      if cell ==# "#" && neighborCount < 2
+        let isLive = 0
+      elseif cell ==# "#" && (neighborCount == 2 || neighborCount == 3)
+        let isLive = 1
+      elseif cell ==# "#" && neighborCount > 3
+        let isLive = 0
+      elseif cell !=# "#" && neighborCount == 3
+        let isLive = 1
+      endif
+      if isLive
+        " Replace char under cursor.
+        call cursor(line, col)
+        let @" = "#"
+        normal! Plx
+      endif
+      let col += 1
+    endwhile
+    let line += 1
+  endwhile
+  execute "buffer".bufn
 endfunc
