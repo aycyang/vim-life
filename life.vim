@@ -1,3 +1,5 @@
+let s:gameOfLifeGenerations = 0
+
 func s:FillGrid(w, h, value)
   let result = []
   let r = 0
@@ -14,7 +16,7 @@ func s:FillGrid(w, h, value)
 endfunc
 
 func s:WinWidth()
-  return winwidth(0) - &numberwidth
+  return winwidth(0) - (&number ? &numberwidth : 0)
 endfunc
 
 func s:ReadBuf()
@@ -141,6 +143,8 @@ func GameOfLifeStep()
   " Render to buffer
   let render = s:GridMap(next, { cell -> cell ? "#" : " " })
   call s:RenderGrid(render)
+  let s:gameOfLifeGenerations += 1
+  echo s:gameOfLifeGenerations
 endfunc
 
 func GameOfLife()
