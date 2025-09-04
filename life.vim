@@ -18,9 +18,9 @@ func s:WinWidth()
 endfunc
 
 func s:ReadBuf()
-  let w = WinWidth()
+  let w = s:WinWidth()
   let h = winheight(0)
-  let lifeCoords = FillGrid(w, h, 0)
+  let lifeCoords = s:FillGrid(w, h, 0)
   let lines = getline(1, line("$"))
   let r = 0
   for line in lines
@@ -127,20 +127,20 @@ endfunc
 
 func GameOfLifeStep()
   " Read buffer into 2D list
-  let grid = ReadBuf()
+  let grid = s:ReadBuf()
   " Calculate neighbor counts
   let hconv = deepcopy(grid)
-  let vconv = GridMap(grid, {x -> -x})
-  call GridAdd(hconv, grid, function("GridGetWithOffset", [0, 1]))
-  call GridAdd(hconv, grid, function("GridGetWithOffset", [0, -1]))
-  call GridAdd(vconv, hconv, function("GridGetWithOffset", [0, 0]))
-  call GridAdd(vconv, hconv, function("GridGetWithOffset", [1, 0]))
-  call GridAdd(vconv, hconv, function("GridGetWithOffset", [-1, 0]))
+  let vconv = s:GridMap(grid, {x -> -x})
+  call s:GridAdd(hconv, grid, function("s:GridGetWithOffset", [0, 1]))
+  call s:GridAdd(hconv, grid, function("s:GridGetWithOffset", [0, -1]))
+  call s:GridAdd(vconv, hconv, function("s:GridGetWithOffset", [0, 0]))
+  call s:GridAdd(vconv, hconv, function("s:GridGetWithOffset", [1, 0]))
+  call s:GridAdd(vconv, hconv, function("s:GridGetWithOffset", [-1, 0]))
   " Determine live cells in next iteration
-  let next = GridMap2(grid, vconv, function("ApplyConwayRules"))
+  let next = s:GridMap2(grid, vconv, function("s:ApplyConwayRules"))
   " Render to buffer
-  let render = GridMap(next, { cell -> cell ? "#" : " " })
-  call RenderGrid(render)
+  let render = s:GridMap(next, { cell -> cell ? "#" : " " })
+  call s:RenderGrid(render)
 endfunc
 
 func GameOfLife()
