@@ -1,11 +1,3 @@
-func Set(list, x, y, value)
-  let a:list[a:y * WinWidth() + a:x] = a:value
-endfunc
-
-func Get(list, x, y)
-  return a:list[a:y * WinWidth() + a:x]
-endfunc
-
 func s:FillGrid(w, h, value)
   let result = []
   let r = 0
@@ -21,21 +13,11 @@ func s:FillGrid(w, h, value)
   return result
 endfunc
 
-func FillList(size, value)
-  let result = []
-  let i = 0
-  while i < a:size
-    call add(result, a:value)
-    let i += 1
-  endwhile
-  return result
-endfunc
-
 func s:WinWidth()
   return winwidth(0) - &numberwidth
 endfunc
 
-func ReadBuf()
+func s:ReadBuf()
   let w = WinWidth()
   let h = winheight(0)
   let lifeCoords = FillGrid(w, h, 0)
@@ -54,7 +36,7 @@ func ReadBuf()
   return lifeCoords
 endfunc
 
-func DebugGrid(grid, getter)
+func s:DebugGrid(grid, getter)
   let r = 0
   while r < len(a:grid)
     let c = 0
@@ -70,7 +52,7 @@ func DebugGrid(grid, getter)
 endfunc
 
 " Return a deep copy of src grid while applying fn element-wise.
-func GridMap(src, fn)
+func s:GridMap(src, fn)
   let dst = []
   let r = 0
   while r < len(a:src)
@@ -86,7 +68,7 @@ func GridMap(src, fn)
 endfunc
 
 " Use with partial application to create grid views at various origins.
-func GridGetWithOffset(roffs, coffs, src, r, c)
+func s:GridGetWithOffset(roffs, coffs, src, r, c)
   let row = (a:r + a:roffs + len(a:src)) % len(a:src)
   let col = (a:c + a:coffs + len(a:src[row])) % len(a:src[row])
   return a:src[row][col]
@@ -94,7 +76,7 @@ endfunc
 
 " Add src into dst element-wise, using getter on src.
 " Assumes src and dst have the same dimensions.
-func GridAdd(dst, src, getter)
+func s:GridAdd(dst, src, getter)
   let r = 0
   while r < len(a:dst)
     let c = 0
@@ -108,7 +90,7 @@ endfunc
 
 " Given src1 and src2, produce element in returned new grid.
 " Assumes src1 and src2 have the same dimensions.
-func GridMap2(src1, src2, fn)
+func s:GridMap2(src1, src2, fn)
   let dst = []
   let r = 0
   while r < len(a:src1)
@@ -123,7 +105,7 @@ func GridMap2(src1, src2, fn)
   return dst
 endfunc
 
-func ApplyConwayRules(isLive, neighborCount)
+func s:ApplyConwayRules(isLive, neighborCount)
   if a:isLive && a:neighborCount < 2
     return 0
   elseif a:isLive && (a:neighborCount == 2 || a:neighborCount == 3)
@@ -135,7 +117,7 @@ func ApplyConwayRules(isLive, neighborCount)
   endif
 endfunc
 
-func RenderGrid(grid)
+func s:RenderGrid(grid)
   let lnum = 1
   for row in a:grid
     call setline(lnum, join(row, ""))
@@ -143,17 +125,30 @@ func RenderGrid(grid)
   endfor
 endfunc
 
-set switchbuf=useopen
-sbuffer glider.txt
-let grid = ReadBuf()
-let hconv = deepcopy(grid)
-let vconv = GridMap(grid, {x -> -x})
-call GridAdd(hconv, grid, function("GridGetWithOffset", [0, 1]))
-call GridAdd(hconv, grid, function("GridGetWithOffset", [0, -1]))
-call GridAdd(vconv, hconv, function("GridGetWithOffset", [0, 0]))
-call GridAdd(vconv, hconv, function("GridGetWithOffset", [1, 0]))
-call GridAdd(vconv, hconv, function("GridGetWithOffset", [-1, 0]))
-let next = GridMap2(grid, vconv, function("ApplyConwayRules"))
-let render = GridMap(next, { cell -> cell ? "#" : " " })
-call RenderGrid(render)
-sbuffer life.vim
+func GameOfLifeStep()
+  " Read buffer into 2D list
+  let grid = ReadBuf()
+  " Calculate neighbor counts
+  let hconv = deepcopy(grid)
+  let vconv = GridMap(grid, {x -> -x})
+  call GridAdd(hconv, grid, function("GridGetWithOffset", [0, 1]))
+  call GridAdd(hconv, grid, function("GridGetWithOffset", [0, -1]))
+  call GridAdd(vconv, hconv, function("GridGetWithOffset", [0, 0]))
+  call GridAdd(vconv, hconv, function("GridGetWithOffset", [1, 0]))
+  call GridAdd(vconv, hconv, function("GridGetWithOffset", [-1, 0]))
+  " Determine live cells in next iteration
+  let next = GridMap2(grid, vconv, function("ApplyConwayRules"))
+  " Render to buffer
+  let render = GridMap(next, { cell -> cell ? "#" : " " })
+  call RenderGrid(render)
+endfunc
+
+func GameOfLife()
+  while 1
+    call GameOfLifeStep()
+    redraw
+  endwhile
+endfunc
+
+nnoremap \s :call GameOfLifeStep()<cr>
+nnoremap \r :call GameOfLife()<cr>
