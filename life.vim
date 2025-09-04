@@ -50,14 +50,47 @@ func ReadBuf()
   return lifeCoords
 endfunc
 
-func DebugCoords(coords)
-  for line in a:coords
-    echo join(line)
-  endfor
+func DebugGrid(grid, getter)
+  let r = 0
+  while r < len(a:grid)
+    let c = 0
+    let row = []
+    while c < len(a:grid[r])
+      call add(row, a:getter(a:grid, r, c))
+      let c += 1
+    endwhile
+    echo join(row, "")
+    let r += 1
+  endwhile
+endfunc
+
+" Return a deep copy of src grid while applying fn element-wise.
+func MapGrid(src, fn)
+  let dst = []
+  let r = 0
+  while r < len(a:src)
+    call add(dst, [])
+    let c = 0
+    while c < len(a:src[r])
+      call add(dst[r], a:fn(a:src[r][c]))
+      let c += 1
+    endwhile
+    let r += 1
+  endwhile
+  return dst
+endfunc
+
+func GridGetWithOffset(roffs, coffs, src, r, c)
+  let r = (a:r + a:roffs + len(a:src)) % len(a:src)
+  let c = (a:c + a:coffs + len(a:src[r])) % len(a:src[r])
+  return a:src[r][c]
 endfunc
 
 set switchbuf=useopen
 sbuffer glider.txt
-call DebugCoords(ReadBuf())
+let grid = ReadBuf()
+let neighborCounts = MapGrid(grid, {cell -> -cell})
+"call DebugGrid(grid, {grid, r, c -> grid[r][c]})
+call DebugGrid(grid, function("GridGetWithOffset", [0, 3]))
 sbuffer life.vim
 
