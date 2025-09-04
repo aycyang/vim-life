@@ -62,6 +62,7 @@ func DebugGrid(grid, getter)
     echo join(row, "")
     let r += 1
   endwhile
+  echo ""
 endfunc
 
 " Return a deep copy of src grid while applying fn element-wise.
@@ -80,17 +81,37 @@ func MapGrid(src, fn)
   return dst
 endfunc
 
+" Use with partial application to create grid views at various origins.
 func GridGetWithOffset(roffs, coffs, src, r, c)
-  let r = (a:r + a:roffs + len(a:src)) % len(a:src)
-  let c = (a:c + a:coffs + len(a:src[r])) % len(a:src[r])
-  return a:src[r][c]
+  let row = (a:r + a:roffs + len(a:src)) % len(a:src)
+  let col = (a:c + a:coffs + len(a:src[row])) % len(a:src[row])
+  return a:src[row][col]
+endfunc
+
+" Add src into dst element-wise, using getter on src.
+" Assumes src and dst have the same dimensions.
+func GridAdd(dst, src, getter)
+  let r = 0
+  while r < len(a:dst)
+    let c = 0
+    while c < len(a:dst[r])
+      let a:dst[r][c] += a:getter(a:src, r, c)
+      let c += 1
+    endwhile
+    let r += 1
+  endwhile
 endfunc
 
 set switchbuf=useopen
 sbuffer glider.txt
 let grid = ReadBuf()
-let neighborCounts = MapGrid(grid, {cell -> -cell})
-"call DebugGrid(grid, {grid, r, c -> grid[r][c]})
-call DebugGrid(grid, function("GridGetWithOffset", [0, 3]))
+let hconv = deepcopy(grid)
+let vconv = MapGrid(grid, {x -> -x})
+call GridAdd(hconv, grid, function("GridGetWithOffset", [0, 1]))
+call GridAdd(hconv, grid, function("GridGetWithOffset", [0, -1]))
+call GridAdd(vconv, hconv, function("GridGetWithOffset", [0, 0]))
+call GridAdd(vconv, hconv, function("GridGetWithOffset", [1, 0]))
+call GridAdd(vconv, hconv, function("GridGetWithOffset", [-1, 0]))
+call DebugGrid(vconv, {grid, r, c -> grid[r][c]})
 sbuffer life.vim
 
