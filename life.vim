@@ -128,6 +128,7 @@ func s:RenderGrid(grid)
 endfunc
 
 func GameOfLifeStep()
+  let startTime = reltime()
   " Read buffer into 2D list
   let grid = s:ReadBuf()
   " Calculate neighbor counts
@@ -144,7 +145,7 @@ func GameOfLifeStep()
   let render = s:GridMap(next, { cell -> cell ? "#" : " " })
   call s:RenderGrid(render)
   let s:gameOfLifeGenerations += 1
-  echo s:gameOfLifeGenerations
+  echo "iteration: ".s:gameOfLifeGenerations." | last update: ".startTime->reltime()->reltimestr()."s"
 endfunc
 
 func GameOfLife()
